@@ -349,14 +349,15 @@ uint32_t shl_t32(uint32_t x,uint32_t n) {
 /* complicated sm >= 3.5 one (with Funnel Shifter beschleunigt), to bench */
 __device__ __forceinline__
 uint64_t ROTR64(const uint64_t value, const int offset) {
-	uint2 result;
-	if(offset < 32) {
+	if (offset < 32) {
+        uint2 result;
 		asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
 		asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
-	} else {
-		asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
-		asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
+        return __double_as_longlong(__hiloint2double(result.y, result.x));
 	}
+    uint2 result;
+    asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
+    asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
 	return __double_as_longlong(__hiloint2double(result.y, result.x));
 }
 #elif __CUDA_ARCH__ >= 120 && USE_ROT_ASM_OPT == 2
@@ -383,14 +384,15 @@ uint64_t ROTR64(const uint64_t x, const int offset)
 #if __CUDA_ARCH__ >= 320 && USE_ROT_ASM_OPT == 1
 __device__ __forceinline__
 uint64_t ROTL64(const uint64_t value, const int offset) {
-	uint2 result;
-	if(offset >= 32) {
+	if (offset >= 32) {
+        uint2 result;
 		asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
 		asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
-	} else {
-		asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
-		asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
+        return  __double_as_longlong(__hiloint2double(result.y, result.x));
 	}
+	uint2 result;
+    asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
+    asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
 	return  __double_as_longlong(__hiloint2double(result.y, result.x));
 }
 #elif __CUDA_ARCH__ >= 120 && USE_ROT_ASM_OPT == 2
@@ -521,53 +523,59 @@ static __device__ __forceinline__ uint2 operator* (uint2 a, uint2 b)
 __device__ __forceinline__
 uint2 ROR2(const uint2 a, const int offset)
 {
-	uint2 result;
 #if __CUDA_ARCH__ > 300
 	if (offset < 32) {
+        uint2 result;
 		asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(a.x), "r"(a.y), "r"(offset));
 		asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(a.y), "r"(a.x), "r"(offset));
-	} else /* if (offset < 64) */ {
-		/* offset SHOULD BE < 64 ! */
-		asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(a.y), "r"(a.x), "r"(offset));
-		asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(a.x), "r"(a.y), "r"(offset));
+        return result;
 	}
+    /* else if (offset < 64) */
+    /* offset SHOULD BE < 64 ! */
+    uint2 result;
+    asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(a.y), "r"(a.x), "r"(offset));
+    asm("shf.r.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(a.x), "r"(a.y), "r"(offset));
+    return result;
 #else
 	if (!offset)
-		result = a;
+        return a;
 	else if (offset < 32) {
+        uint2 result;
 		result.y = ((a.y >> offset) | (a.x << (32 - offset)));
 		result.x = ((a.x >> offset) | (a.y << (32 - offset)));
+        return result;
 	} else if (offset == 32) {
+        uint2 result;
 		result.y = a.x;
 		result.x = a.y;
-	} else {
-		result.y = ((a.x >> (offset - 32)) | (a.y << (64 - offset)));
-		result.x = ((a.y >> (offset - 32)) | (a.x << (64 - offset)));
+        return result;
 	}
+    uint2 result;
+    result.y = ((a.x >> (offset - 32)) | (a.y << (64 - offset)));
+    result.x = ((a.y >> (offset - 32)) | (a.x << (64 - offset)));
+    return result;
 #endif
-	return result;
 }
 
 __device__ __forceinline__
 uint2 ROL2(const uint2 a, const int offset)
 {
-	uint2 result;
 #if __CUDA_ARCH__ > 300
 	if (offset >= 32) {
+        uint2 result;
 		asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(a.x), "r"(a.y), "r"(offset));
 		asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(a.y), "r"(a.x), "r"(offset));
+        return result;
 	}
-	else {
-		asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(a.y), "r"(a.x), "r"(offset));
-		asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(a.x), "r"(a.y), "r"(offset));
-	}
+	uint2 result;
+    asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(a.y), "r"(a.x), "r"(offset));
+    asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(a.x), "r"(a.y), "r"(offset));
+	return result;
 #else
 	if (!offset)
-		result = a;
-	else
-		result = ROR2(a, 64 - offset);
+        return a;
+    return ROR2(a, 64 - offset);
 #endif
-	return result;
 }
 
 __device__ __forceinline__
@@ -613,27 +621,28 @@ __device__ __forceinline__
 static uint2 SHL2(uint2 a, int offset)
 {
 #if __CUDA_ARCH__ > 300
-	uint2 result;
 	if (offset < 32)  {
+        uint2 result;
 		asm("{ // SHL2 (l) \n\t"
 			"shf.l.clamp.b32 %1, %2, %3, %4; \n\t"
 			"shl.b32         %0, %2, %4;     \n\t"
 		"}\n" : "=r"(result.x), "=r"(result.y) : "r"(a.x), "r"(a.y), "r"(offset));
-	} else {
-		asm("{ // SHL2 (h) \n\t"
-			"shf.l.clamp.b32 %1, %2, %3, %4; \n\t"
-			"shl.b32         %0, %2, %4;     \n\t"
-		"}\n" : "=r"(result.x), "=r"(result.y) : "r"(a.y), "r"(a.x), "r"(offset));
+        return result;
 	}
+	uint2 result;
+    asm("{ // SHL2 (h) \n\t"
+        "shf.l.clamp.b32 %1, %2, %3, %4; \n\t"
+        "shl.b32         %0, %2, %4;     \n\t"
+    "}\n" : "=r"(result.x), "=r"(result.y) : "r"(a.y), "r"(a.x), "r"(offset));
 	return result;
 #else
 	if (offset <= 32) {
 		a.y = (a.y << offset) | (a.x >> (32 - offset));
 		a.x = (a.x << offset);
-	} else {
-		a.y = (a.x << (offset-32));
-		a.x = 0;
-	}
+        return a;
+	} 
+    a.y = (a.x << (offset-32));
+    a.x = 0;
 	return a;
 #endif
 }
@@ -642,29 +651,30 @@ __device__ __forceinline__
 static uint2 SHR2(uint2 a, int offset)
 {
 #if __CUDA_ARCH__ > 300
-	uint2 result;
-	if (offset<32) {
+	if (offset < 32) {
+        uint2 result;
 		asm("{\n\t"
 			"shf.r.clamp.b32 %0,%2,%3,%4; \n\t"
 			"shr.b32 %1,%3,%4; \n\t"
 			"}\n\t"
 			: "=r"(result.x), "=r"(result.y) : "r"(a.x), "r"(a.y), "r"(offset));
-	} else {
-		asm("{\n\t"
-			"shf.l.clamp.b32 %0,%2,%3,%4; \n\t"
-			"shl.b32 %1,%3,%4; \n\t"
-			"}\n\t"
-			: "=r"(result.x), "=r"(result.y) : "r"(a.y), "r"(a.x), "r"(offset));
+        return result;
 	}
+	uint2 result;
+    asm("{\n\t"
+        "shf.l.clamp.b32 %0,%2,%3,%4; \n\t"
+        "shl.b32 %1,%3,%4; \n\t"
+        "}\n\t"
+        : "=r"(result.x), "=r"(result.y) : "r"(a.y), "r"(a.x), "r"(offset));
 	return result;
 #else
 	if (offset <= 32) {
 		a.x = (a.x >> offset) | (a.y << (32 - offset));
 		a.y = (a.y >> offset);
-	} else {
-		a.x = (a.y >> (offset - 32));
-		a.y = 0;
+        return a;
 	}
+    a.x = (a.y >> (offset - 32));
+    a.y = 0;
 	return a;
 #endif
 }

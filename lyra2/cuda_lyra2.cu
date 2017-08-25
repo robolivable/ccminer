@@ -195,7 +195,9 @@ __device__ __forceinline__ void WarpShuffle3(uint2 &a1, uint2 &a2, uint2 &a3, ui
 static __device__ __forceinline__
 void Gfunc(uint2 &a, uint2 &b, uint2 &c, uint2 &d)
 {
-	a += b; uint2 tmp = d; d.y = a.x ^ tmp.x; d.x = a.y ^ tmp.y;
+	a += b;
+    unsigned int tdy = d.y;
+    d.y = a.x ^ d.x; d.x = a.y ^ tdy;
 	c += d; b ^= c; b = ROR24(b);
 	a += b; d ^= a; d = ROR16(d);
 	c += d; b ^= c; b = ROR2(b, 63);

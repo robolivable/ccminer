@@ -92,7 +92,7 @@ void squeeze(uint64_t *state, byte *out, unsigned int len)
 	byte *ptr = out;
 	int i;
 	//Squeezes full blocks
-	for (i = 0; i < fullBlocks; i++) {
+	for (i = 0; i < fullBlocks; ++i) {
 		memcpy(ptr, state, BLOCK_LEN_BYTES);
 		blake2bLyra(state);
 		ptr += BLOCK_LEN_BYTES;

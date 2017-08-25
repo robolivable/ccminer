@@ -51,14 +51,15 @@ struct uint3  blockDim;
 #ifndef ROTL64
     #if __CUDA_ARCH__ >= 350
         __forceinline__ __device__ uint64_t cuda_ROTL64(const uint64_t value, const int offset) {
-            uint2 result;
-            if(offset >= 32) {
+            if (offset >= 32) {
+                uint2 result;
                 asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
                 asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
-            } else {
-                asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
-                asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
+                return  __double_as_longlong(__hiloint2double(result.y, result.x));
             }
+            uint2 result;
+            asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.x) : "r"(__double2hiint(__longlong_as_double(value))), "r"(__double2loint(__longlong_as_double(value))), "r"(offset));
+            asm("shf.l.wrap.b32 %0, %1, %2, %3;" : "=r"(result.y) : "r"(__double2loint(__longlong_as_double(value))), "r"(__double2hiint(__longlong_as_double(value))), "r"(offset));
             return  __double_as_longlong(__hiloint2double(result.y, result.x));
         }
         #define ROTL64(x, n) (cuda_ROTL64(x, n))

@@ -32,11 +32,16 @@ typedef unsigned char byte;
 #ifdef BLOCK_LEN_BITS
         #define BLOCK_LEN_INT64 (BLOCK_LEN_BITS/64)      //Block length: 768 bits (=96 bytes, =12 uint64_t)
         #define BLOCK_LEN_BYTES (BLOCK_LEN_BITS/8)       //Block length, in bytes
-#else   //default block lenght: 768 bits
+#else   //default block length: 768 bits
         #define BLOCK_LEN_INT64 12                       //Block length: 768 bits (=96 bytes, =12 uint64_t)
         #define BLOCK_LEN_BYTES (BLOCK_LEN_INT64 * 8)    //Block length, in bytes
 #endif
 
-int LYRA2(void *K, int64_t kLen, const void *pwd, int32_t pwdlen, const void *salt, int32_t saltlen, int64_t timeCost, const int16_t nRows, const int16_t nCols);
+int LYRA2(void *K, int64_t kLen,
+          const void *pwd, int32_t pwdlen,
+          const void *salt, int32_t saltlen,
+          int64_t timeCost,
+          const int16_t nRows, const int16_t nCols);
 
 #endif /* LYRA2_H_ */
+
